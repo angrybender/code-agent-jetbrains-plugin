@@ -14,7 +14,7 @@ import org.cef.handler.CefMessageRouterHandlerAdapter;
 
 /**
  * 主面板
- * 
+ *
  * @author huangxingguang
  * @date 2019-04-21 13:53
  */
@@ -22,12 +22,20 @@ class Browser extends JPanel {
     private BrowserView webView;
     private JButton btnRefresh;
     private JProgressBar progressBar;
+    private String userHomeDirectory;
 
     Browser(BrowserView webView) {
         this.webView = webView;
         this.initView();
         this.initEvent();
         this.loadApp();
+        this.initConfig();
+    }
+
+    private void initConfig()
+    {
+        // Get user home directory (works on Linux, Windows, and macOS)
+        userHomeDirectory = System.getProperty("user.home");
     }
 
     private void loadApp()
