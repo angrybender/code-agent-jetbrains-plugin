@@ -3,8 +3,12 @@ package com.kirv.plugin;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Properties;
 
 import javax.swing.*;
 
@@ -26,6 +30,7 @@ class Browser extends JPanel {
     private JProgressBar progressBar;
     private String userHomeDirectory;
     private Path configFilePath;
+    private int port = 5000; // default port value
 
     Browser(BrowserView webView) {
         this.webView = webView;
@@ -42,10 +47,33 @@ class Browser extends JPanel {
         configFilePath = Paths.get(userHomeDirectory, "code_agent_cnfg.env");
     }
 
+    private void loadConfigFile() {
+        Properties properties = new Properties();
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(configFilePath.toFile()))) {
+            properties.load(reader);
+
+            // Read PORT parameter with default value 5000
+            String portStr = properties.getProperty("PORT", "5000");
+            try {
+                port = Integer.parseInt(portStr.trim());
+            } catch (NumberFormatException e) {
+                // If PORT value is invalid, use default 5000
+                port = 5000;
+                System.err.println("Invalid PORT value in config file, using default: 5000");
+            }
+
+        } catch (IOException e) {
+            // Config file not found or cannot be read - use default port
+            port = 5000;
+        }
+    }
+
     private void loadApp()
     {
+        loadConfigFile();
         webView.load("about:blank");
-        webView.load("http://localhost:5000/");
+        webView.load("http://localhost:" + port + "/");
     }
 
     private void initView() {
