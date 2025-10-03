@@ -3,6 +3,8 @@ package com.kirv.plugin;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import javax.swing.*;
 
@@ -23,6 +25,7 @@ class Browser extends JPanel {
     private JButton btnRefresh;
     private JProgressBar progressBar;
     private String userHomeDirectory;
+    private Path configFilePath;
 
     Browser(BrowserView webView) {
         this.webView = webView;
@@ -36,6 +39,7 @@ class Browser extends JPanel {
     {
         // Get user home directory (works on Linux, Windows, and macOS)
         userHomeDirectory = System.getProperty("user.home");
+        configFilePath = Paths.get(userHomeDirectory, "code_agent_cnfg.env");
     }
 
     private void loadApp()
