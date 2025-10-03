@@ -5,7 +5,10 @@ plugins {
 }
 
 group = "com.kirv.plugin"
-version = "0.0.1"
+version = "0.0.2"
+
+val platformType = providers.gradleProperty("platformType").orElse("IC")
+val platformVersion = providers.gradleProperty("platformVersion").orElse("2025.2")
 
 repositories {
     mavenCentral()
@@ -18,9 +21,9 @@ repositories {
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html
 dependencies {
     intellijPlatform {
-        create("IC", "2025.1")
+        create(platformType, platformVersion)
         //create("PC", "2024.3.1")
-        testFramework(org.jetbrains.intellij.platform.gradle.TestFrameworkType.Platform)
+        //testFramework(org.jetbrains.intellij.platform.gradle.TestFrameworkType.Platform)
 
         // Add necessary plugin dependencies for compilation here, example:
         // bundledPlugin("com.intellij.java")
@@ -45,6 +48,10 @@ tasks {
         sourceCompatibility = "21"
         targetCompatibility = "21"
     }
+}
+
+tasks.named<Jar>("jar") {
+    archiveBaseName.set(platformType.get() + "-" + archiveBaseName.get())
 }
 
 kotlin {
