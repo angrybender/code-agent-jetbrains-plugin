@@ -29,10 +29,10 @@ class Browser extends JPanel {
 
     Browser(BrowserView webView) {
         this.webView = webView;
+        this.initConfig();
         this.initView();
         this.initEvent();
         this.loadApp();
-        this.initConfig();
     }
 
     private void initConfig()
@@ -66,6 +66,18 @@ class Browser extends JPanel {
         gbc.anchor    = GridBagConstraints.WEST;            // align to the left (west) of the cell
 
         panel.add(btnRefresh = new ControlButton("↻"), gbc);
+
+        // add config file path label
+        gbc = new GridBagConstraints();
+        gbc.gridx     = 1;
+        gbc.gridy     = 0;
+        gbc.weightx   = 1.0;
+        gbc.anchor    = GridBagConstraints.WEST;
+        gbc.insets    = new Insets(0, 10, 0, 0);
+
+        JLabel configLabel = new JLabel("Config: " + configFilePath.toString());
+        panel.add(configLabel, gbc);
+
         return panel;
     }
 
