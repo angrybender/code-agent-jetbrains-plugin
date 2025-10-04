@@ -3,6 +3,12 @@ package com.kirv.plugin;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Properties;
 
 import javax.swing.*;
 
@@ -14,7 +20,7 @@ import org.cef.handler.CefMessageRouterHandlerAdapter;
 
 /**
  * 主面板
- * 
+ *
  * @author huangxingguang
  * @date 2019-04-21 13:53
  */
@@ -22,18 +28,52 @@ class Browser extends JPanel {
     private BrowserView webView;
     private JButton btnRefresh;
     private JProgressBar progressBar;
+    private String userHomeDirectory;
+    private Path configFilePath;
+    private int port = 5000; // default port value
 
     Browser(BrowserView webView) {
         this.webView = webView;
+        this.initConfig();
         this.initView();
         this.initEvent();
         this.loadApp();
     }
 
+    private void initConfig()
+    {
+        // Get user home directory (works on Linux, Windows, and macOS)
+        userHomeDirectory = System.getProperty("user.home");
+        configFilePath = Paths.get(userHomeDirectory, "code_agent_cnfg.env");
+    }
+
+    private void loadConfigFile() {
+        Properties properties = new Properties();
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(configFilePath.toFile()))) {
+            properties.load(reader);
+
+            // Read PORT parameter with default value 5000
+            String portStr = properties.getProperty("PORT", "5000");
+            try {
+                port = Integer.parseInt(portStr.trim());
+            } catch (NumberFormatException e) {
+                // If PORT value is invalid, use default 5000
+                port = 5000;
+                System.err.println("Invalid PORT value in config file, using default: 5000");
+            }
+
+        } catch (IOException e) {
+            // Config file not found or cannot be read - use default port
+            port = 5000;
+        }
+    }
+
     private void loadApp()
     {
+        loadConfigFile();
         webView.load("about:blank");
-        webView.load("http://localhost:5000/");
+        webView.load("http://localhost:" + port + "/");
     }
 
     private void initView() {
@@ -54,6 +94,18 @@ class Browser extends JPanel {
         gbc.anchor    = GridBagConstraints.WEST;            // align to the left (west) of the cell
 
         panel.add(btnRefresh = new ControlButton("↻"), gbc);
+
+        // add config file path label
+        gbc = new GridBagConstraints();
+        gbc.gridx     = 1;
+        gbc.gridy     = 0;
+        gbc.weightx   = 1.0;
+        gbc.anchor    = GridBagConstraints.WEST;
+        gbc.insets    = new Insets(0, 10, 0, 0);
+
+        JLabel configLabel = new JLabel("Config: " + configFilePath.toString());
+        panel.add(configLabel, gbc);
+
         return panel;
     }
 
