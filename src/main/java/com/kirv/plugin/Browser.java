@@ -1,8 +1,6 @@
 package com.kirv.plugin;
 
 import java.awt.*;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -12,18 +10,11 @@ import java.util.Properties;
 
 import javax.swing.*;
 
-import org.cef.browser.CefBrowser;
-import org.cef.browser.CefFrame;
-import org.cef.browser.CefMessageRouter;
-import org.cef.callback.CefQueryCallback;
-import org.cef.handler.CefMessageRouterHandlerAdapter;
-
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
-import com.intellij.openapi.fileEditor.FileEditorManager;
 import java.io.File;
 
 /**
@@ -186,9 +177,7 @@ class Browser extends JPanel {
             if (vFile == null) throw new IllegalArgumentException("File not found in VFS: " + file.getAbsolutePath());
 
             ApplicationManager.getApplication().invokeLater(() -> {
-                //FileEditorManager.getInstance(project).openFile(vFile, true);
                 new OpenFileDescriptor(project, vFile).navigate(true);
-                //OpenFileAction.openFile(vFile, project);
             });
         }
         
