@@ -24,8 +24,11 @@ import com.intellij.util.ui.JBUI;
  */
 public class BrowserWindowFactory implements ToolWindowFactory {
 
+    private Project project;
+
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
+        this.project = project;
         ContentFactory contentFactory = ContentFactory.getInstance();
         Content content = contentFactory.createContent(getBrowser(), "", false);
         toolWindow.getContentManager().addContent(content);
@@ -45,7 +48,7 @@ public class BrowserWindowFactory implements ToolWindowFactory {
 
         try {
             if (isSupportedJCEF()) {
-                return new Browser((BrowserView) Class.forName("com.kirv.plugin.JcefBrowser").newInstance());
+                return new Browser((BrowserView) Class.forName("com.kirv.plugin.JcefBrowser").newInstance(), this.project);
             }
         } catch (Exception e) {
             Logger.getInstance(BrowserWindowFactory.class).error(e);

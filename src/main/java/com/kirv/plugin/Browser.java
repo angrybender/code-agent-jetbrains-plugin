@@ -18,6 +18,14 @@ import org.cef.browser.CefMessageRouter;
 import org.cef.callback.CefQueryCallback;
 import org.cef.handler.CefMessageRouterHandlerAdapter;
 
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.vfs.LocalFileSystem;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.fileEditor.OpenFileDescriptor;
+import com.intellij.openapi.fileEditor.FileEditorManager;
+import java.io.File;
+
 /**
  * 主面板
  *
@@ -31,9 +39,11 @@ class Browser extends JPanel {
     private String userHomeDirectory;
     private Path configFilePath;
     private int port = 5000; // default port value
+    private Project project;
 
-    Browser(BrowserView webView) {
+    Browser(BrowserView webView, Project project) {
         this.webView = webView;
+        this.project = project;
         this.initConfig();
         this.initView();
         this.initEvent();
@@ -149,6 +159,40 @@ class Browser extends JPanel {
     }
 
     private String fromPluginCallback(String command) {
-        return "true";
+        // Check if command starts with file open prefix
+        if (command != null && command.startsWith("jide_open_file//")) {
+            // Extract file path after '//'
+            String filePath = command.substring("jide_open_file//".length());
+
+            // Handle empty path
+            if (filePath.isEmpty()) {
+                return "error:empty_file_path";
+            }
+
+            // Convert to absolute path if relative
+            File file = new File(filePath);
+            if (!file.isAbsolute()) {
+                // Handle relative paths - convert to absolute based on project base
+                file = new File(project.getBasePath(), filePath);
+            }
+
+            // Check if file exists
+            if (!file.exists()) {
+                return "error:file_not_found:" + file.getAbsolutePath();
+            }
+
+            // Open file in IntelliJ editor
+            VirtualFile vFile = LocalFileSystem.getInstance().refreshAndFindFileByPath(file.getAbsolutePath());
+            if (vFile == null) throw new IllegalArgumentException("File not found in VFS: " + file.getAbsolutePath());
+
+            ApplicationManager.getApplication().invokeLater(() -> {
+                //FileEditorManager.getInstance(project).openFile(vFile, true);
+                new OpenFileDescriptor(project, vFile).navigate(true);
+                //OpenFileAction.openFile(vFile, project);
+            });
+        }
+        
+        // Default response for other commands
+        return "success";
     }
 }
