@@ -8,6 +8,8 @@ import java.util.Properties;
 
 import javax.swing.*;
 
+import com.intellij.diff.DiffManager;
+import com.intellij.diff.DiffRequestFactory;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.LocalFileSystem;
@@ -26,7 +28,6 @@ class Browser extends JPanel {
     private BrowserView webView;
     private JButton btnRefresh;
     private JProgressBar progressBar;
-    private String userHomeDirectory;
     private Path configFilePath;
     private int port = 5000; // default port value
     private Project project;
@@ -43,7 +44,7 @@ class Browser extends JPanel {
     private void initConfig()
     {
         // Get user home directory (works on Linux, Windows, and macOS)
-        userHomeDirectory = System.getProperty("user.home");
+        String userHomeDirectory = System.getProperty("user.home");
         configFilePath = Paths.get(userHomeDirectory, "code_agent_cnfg.env");
     }
 
@@ -156,37 +157,76 @@ class Browser extends JPanel {
 
     private String fromPluginCallback(String command) {
         // Check if command starts with file open prefix
-        if (command != null && command.startsWith("jide_open_file//")) {
-            // Extract file path after '//'
-            String filePath = command.substring("jide_open_file//".length());
-
-            // Handle empty path
-            if (filePath.isEmpty()) {
-                return "error:empty_file_path";
-            }
-
-            // Convert to absolute path if relative
-            File file = new File(filePath);
-            if (!file.isAbsolute()) {
-                // Handle relative paths - convert to absolute based on project base
-                file = new File(project.getBasePath(), filePath);
-            }
-
-            // Check if file exists
-            if (!file.exists()) {
-                return "error:file_not_found: " + file.getAbsolutePath() + "\n(" + project.getBasePath() + ")\n[" + filePath + "]";
-            }
-
-            // Open file in IntelliJ editor
-            VirtualFile vFile = LocalFileSystem.getInstance().refreshAndFindFileByPath(file.getAbsolutePath());
-            if (vFile == null) throw new IllegalArgumentException("File not found in VFS: " + file.getAbsolutePath());
-
-            ApplicationManager.getApplication().invokeLater(() -> {
-                new OpenFileDescriptor(project, vFile).navigate(true);
-            });
+        if (command == null) {
+            return "error:wrong_command";
         }
-        
+
+        // open file in the IDE
+        String[] commandAndArgs = command.split("/\\/");
+        if (commandAndArgs.length == 0) {
+            return "error:wrong_command";
+        }
+
+        String opCode = commandAndArgs[0];
+
+        if (opCode.equals("jide_open_file") || opCode.equals("jide_open_diff_file") && commandAndArgs.length == 2) {
+            String filePath = commandAndArgs[1];
+
+            try {
+                VirtualFile vFile = getProjectFile(filePath);
+
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    new OpenFileDescriptor(project, vFile).navigate(true);
+                });
+            } catch (IllegalArgumentException e) {
+                return e.getMessage();
+            }
+        } else if (opCode.equals("jide_open_diff_file")) {
+            String filePath = commandAndArgs[1];
+            String sourceFilePath = commandAndArgs[2];
+
+            try {
+                VirtualFile left = getProjectFile(sourceFilePath);
+                VirtualFile right = getProjectFile(filePath);
+
+                com.intellij.openapi.project.DumbService.getInstance(project).runWhenSmart(() ->
+                        ApplicationManager.getApplication().invokeLater(() -> {
+                            if (project.isDisposed()) return;
+                            if (left == null || right == null || !left.isValid() || !right.isValid()) return;
+
+                            var request = DiffRequestFactory.getInstance().createFromFiles(project, left, right);
+                            DiffManager.getInstance().showDiff(project, request);
+                        }, com.intellij.openapi.application.ModalityState.NON_MODAL)
+                );
+            } catch (IllegalArgumentException e) {
+                return e.getMessage();
+            }
+        }
+
         // Default response for other commands
         return "success";
+    }
+
+    private VirtualFile getProjectFile(String filePath)
+    {
+        if (filePath.isEmpty()) {
+            throw new IllegalArgumentException("error:empty_file_path");
+        }
+
+        // Convert to absolute path if relative
+        File file = new File(filePath);
+        if (!file.isAbsolute()) {
+            file = new File(project.getBasePath(), filePath);
+        }
+
+        if (!file.exists()) {
+            throw new IllegalArgumentException("error:file_not_found: " + file.getAbsolutePath() + "\n(" + project.getBasePath() + ")\n[" + filePath + "]");
+        }
+
+        // Open file in IntelliJ editor
+        VirtualFile vFile = LocalFileSystem.getInstance().refreshAndFindFileByPath(file.getAbsolutePath());
+        if (vFile == null) throw new IllegalArgumentException("File not found in VFS: " + file.getAbsolutePath());
+
+        return vFile;
     }
 }
