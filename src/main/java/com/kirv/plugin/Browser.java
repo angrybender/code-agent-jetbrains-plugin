@@ -174,7 +174,7 @@ class Browser extends JPanel {
 
             // Check if file exists
             if (!file.exists()) {
-                return "error:file_not_found:" + file.getAbsolutePath() + "(" + project.getBasePath() + ") [" + filePath + "]";
+                return "error:file_not_found: " + file.getAbsolutePath() + "\n(" + project.getBasePath() + ")\n[" + filePath + "]";
             }
 
             // Open file in IntelliJ editor
