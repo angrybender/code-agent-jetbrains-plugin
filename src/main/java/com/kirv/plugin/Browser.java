@@ -1,9 +1,7 @@
 package com.kirv.plugin;
 
 import java.awt.*;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
@@ -15,7 +13,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
-import java.io.File;
+
+import java.net.URLEncoder;
 
 /**
  * 主面板
@@ -74,7 +73,13 @@ class Browser extends JPanel {
     {
         loadConfigFile();
         webView.load("about:blank");
-        webView.load("http://localhost:" + port + "/");
+
+        try {
+            String projectPath = URLEncoder.encode(project.getBasePath(), "UTF-8").replaceAll("\\+", "%20");
+            webView.load("http://localhost:" + port + "/?project=" + projectPath);
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void initView() {
@@ -169,7 +174,7 @@ class Browser extends JPanel {
 
             // Check if file exists
             if (!file.exists()) {
-                return "error:file_not_found:" + file.getAbsolutePath();
+                return "error:file_not_found:" + file.getAbsolutePath() + "(" + project.getBasePath() + ") [" + filePath + "]";
             }
 
             // Open file in IntelliJ editor
