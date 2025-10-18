@@ -3,6 +3,7 @@ package com.kirv.plugin;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.ui.JBColor;
 import org.cef.browser.CefBrowser;
 import org.cef.browser.CefFrame;
 import org.cef.callback.CefQueryCallback;
@@ -15,9 +16,11 @@ import javax.swing.*;
 
 public class JsTransport extends CefMessageRouterHandlerAdapter {
     private final Project project;
+    private final JLabel statusLabel;
 
-    public JsTransport(Project project) {
+    public JsTransport(Project project, JLabel statusLabel) {
         this.project = project;
+        this.statusLabel = statusLabel;
     }
 
     @Override
@@ -67,6 +70,16 @@ public class JsTransport extends CefMessageRouterHandlerAdapter {
             VirtualFile right = getProjectFile(filePath);
 
             IdeInstanceService.getInstance(project).openDiffFiles(left, right);
+        } else if (opCode.equals("jide_status")) {
+            String statusMessage = commandAndArgs[1];
+            String statusType = commandAndArgs[2];
+            statusLabel.setText(statusMessage);
+            if (statusType.equals("disconnected")) {
+                statusLabel.setForeground(JBColor.RED);
+            }
+            else {
+                statusLabel.setForeground(UIManager.getColor("Label.foreground"));
+            }
         }
 
         // Default response for other commands

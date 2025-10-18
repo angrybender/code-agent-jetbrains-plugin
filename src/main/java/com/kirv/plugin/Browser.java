@@ -16,6 +16,8 @@ import java.net.URLEncoder;
 final class Browser extends JPanel {
     private BrowserView webView;
     private JButton btnRefresh;
+    private JButton btnOpenConfigFile;
+    private JLabel statusLabel;
     private JProgressBar progressBar;
     private Path configFilePath;
     private int port = 5000; // default port value
@@ -72,6 +74,7 @@ final class Browser extends JPanel {
         try {
             String projectPath = URLEncoder.encode(project.getBasePath(), "UTF-8").replaceAll("\\+", "%20");
             webView.load("http://localhost:" + port + "/?project=" + projectPath);
+            statusLabel.setText("Connection...");
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
@@ -88,24 +91,40 @@ final class Browser extends JPanel {
 
         // make the button hug the left side
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0;                                  // column 0
-        gbc.gridy = 0;                                  // row    0
-        gbc.weightx = 1.0;                                // give this cell all extra horizontal space
+        gbc.gridx = 0;                                 // column 0
+        gbc.gridy = 0;                                 // row    0
+        gbc.weightx = 0;                               // give this cell all extra horizontal space
         gbc.fill = GridBagConstraints.NONE;            // do not stretch the button
-        gbc.anchor = GridBagConstraints.WEST;            // align to the left (west) of the cell
+        gbc.anchor = GridBagConstraints.WEST;          // align to the left (west) of the cell
 
         panel.add(btnRefresh = new ControlButton("↻"), gbc);
 
-        // add config file path label
         gbc = new GridBagConstraints();
         gbc.gridx = 1;
         gbc.gridy = 0;
-        gbc.weightx = 1.0;
+        gbc.weightx = 0;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.anchor = GridBagConstraints.WEST;
+        panel.add(btnOpenConfigFile = new ControlButton(".env"), gbc);
+
+        // add config file path label
+        gbc = new GridBagConstraints();
+        gbc.gridx = 2;
+        gbc.gridy = 0;
+        gbc.weightx = 0;
         gbc.anchor = GridBagConstraints.WEST;
         gbc.insets = new Insets(0, 10, 0, 0);
 
-        JLabel configLabel = new JLabel("Config: " + configFilePath.toString());
-        panel.add(configLabel, gbc);
+        statusLabel = new JLabel("...");
+        panel.add(statusLabel, gbc);
+
+        // filler (push everything to the left)
+        gbc = new GridBagConstraints();
+        gbc.gridx = 3;
+        gbc.gridy = 0;
+        gbc.weightx = 1.0; // take remaining space
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        panel.add(Box.createHorizontalGlue(), gbc);
 
         return panel;
     }
@@ -131,7 +150,7 @@ final class Browser extends JPanel {
     }
 
     private void initBrowserEvent() {
-        webView.addJSHandler(new JsTransport(project));
+        webView.addJSHandler(new JsTransport(project, statusLabel));
     }
 
     private static class ControlButton extends JButton {
