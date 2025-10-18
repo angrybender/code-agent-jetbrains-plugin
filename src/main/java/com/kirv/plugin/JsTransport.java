@@ -1,8 +1,5 @@
 package com.kirv.plugin;
 
-import com.intellij.diff.DiffManager;
-import com.intellij.diff.DiffRequestFactory;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -32,7 +29,14 @@ public class JsTransport extends CefMessageRouterHandlerAdapter {
                            CefQueryCallback callback) {
 
         //System.out.println("JS called with: " + request + ", for project: " + project.getBasePath());
-        callback.success(onCallback(request));
+        String result = "";
+        try {
+            result = onCallback(request);
+        } catch (IllegalArgumentException e) {
+            result = "error:" + e.getMessage();
+        }
+
+        callback.success(result);
 
         return true;
     }
@@ -40,13 +44,13 @@ public class JsTransport extends CefMessageRouterHandlerAdapter {
     public String onCallback(String command) {
         // Check if command starts with file open prefix
         if (command == null) {
-            return "error:wrong_command";
+            throw new IllegalArgumentException("wrong_command");
         }
 
         // open file in the IDE
         String[] commandAndArgs = command.split("/\\/");
         if (commandAndArgs.length == 0) {
-            return "error:wrong_command_arguments";
+            throw new IllegalArgumentException("wrong_command_arguments");
         }
 
         String opCode = commandAndArgs[0];
@@ -54,42 +58,25 @@ public class JsTransport extends CefMessageRouterHandlerAdapter {
         if (opCode.equals("jide_open_file") || opCode.equals("jide_open_diff_file") && commandAndArgs.length == 2) {
             String filePath = commandAndArgs[1];
 
-            try {
-                VirtualFile vFile = getProjectFile(filePath);
-                IdeInstanceService.getInstance(project).openFile(vFile);
-            } catch (IllegalArgumentException e) {
-                return e.getMessage();
-            }
+            VirtualFile vFile = getProjectFile(filePath);
+            IdeInstanceService.getInstance(project).openFile(vFile);
         } else if (opCode.equals("jide_open_diff_file")) {
             String filePath = commandAndArgs[1];
             String sourceFilePath = commandAndArgs[2];
 
-            try {
-                VirtualFile left = getProjectFile(sourceFilePath);
-                VirtualFile right = getProjectFile(filePath);
+            VirtualFile left = getProjectFile(sourceFilePath);
+            VirtualFile right = getProjectFile(filePath);
 
-                com.intellij.openapi.project.DumbService.getInstance(project).runWhenSmart(() ->
-                        ApplicationManager.getApplication().invokeLater(() -> {
-                            if (project.isDisposed()) return;
-                            if (left == null || right == null || !left.isValid() || !right.isValid()) return;
-
-                            var request = DiffRequestFactory.getInstance().createFromFiles(project, left, right);
-                            DiffManager.getInstance().showDiff(project, request);
-                        }, com.intellij.openapi.application.ModalityState.nonModal())
-                );
-            } catch (IllegalArgumentException e) {
-                return e.getMessage();
-            }
+            IdeInstanceService.getInstance(project).openDiffFiles(left, right);
         }
 
         // Default response for other commands
         return "success";
     }
 
-    private VirtualFile getProjectFile(String filePath)
-    {
+    private VirtualFile getProjectFile(String filePath) {
         if (filePath.isEmpty()) {
-            throw new IllegalArgumentException("error:empty_file_path");
+            throw new IllegalArgumentException("empty_file_path");
         }
 
         // Convert to absolute path if relative
@@ -99,12 +86,12 @@ public class JsTransport extends CefMessageRouterHandlerAdapter {
         }
 
         if (!file.exists()) {
-            throw new IllegalArgumentException("error:file_not_found: " + file.getAbsolutePath() + "\n(" + project.getBasePath() + ")\n[" + filePath + "]");
+            throw new IllegalArgumentException("file_not_found: " + file.getAbsolutePath() + "\n(" + project.getBasePath() + ")\n[" + filePath + "]");
         }
 
         // Open file in IntelliJ editor
         VirtualFile vFile = LocalFileSystem.getInstance().refreshAndFindFileByPath(file.getAbsolutePath());
-        if (vFile == null) throw new IllegalArgumentException("error:File not found in VFS: " + file.getAbsolutePath());
+        if (vFile == null) throw new IllegalArgumentException("File not found in VFS: " + file.getAbsolutePath());
 
         return vFile;
     }

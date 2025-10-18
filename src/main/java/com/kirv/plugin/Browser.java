@@ -34,8 +34,7 @@ final class Browser extends JPanel {
         webView.onHide();
     }
 
-    private void initConfigPath()
-    {
+    private void initConfigPath() {
         String userHomeDirectory = System.getProperty("user.home");
         configFilePath = Paths.get(userHomeDirectory, "code_agent_cnfg.env");
     }
@@ -62,8 +61,7 @@ final class Browser extends JPanel {
         }
     }
 
-    private void loadApp()
-    {
+    private void loadApp() {
         loadConfigFile();
         initBrowserEvent();
         webView.load("about:blank");
@@ -87,21 +85,21 @@ final class Browser extends JPanel {
 
         // make the button hug the left side
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx     = 0;                                  // column 0
-        gbc.gridy     = 0;                                  // row    0
-        gbc.weightx   = 1.0;                                // give this cell all extra horizontal space
-        gbc.fill      = GridBagConstraints.NONE;            // do not stretch the button
-        gbc.anchor    = GridBagConstraints.WEST;            // align to the left (west) of the cell
+        gbc.gridx = 0;                                  // column 0
+        gbc.gridy = 0;                                  // row    0
+        gbc.weightx = 1.0;                                // give this cell all extra horizontal space
+        gbc.fill = GridBagConstraints.NONE;            // do not stretch the button
+        gbc.anchor = GridBagConstraints.WEST;            // align to the left (west) of the cell
 
         panel.add(btnRefresh = new ControlButton("↻"), gbc);
 
         // add config file path label
         gbc = new GridBagConstraints();
-        gbc.gridx     = 1;
-        gbc.gridy     = 0;
-        gbc.weightx   = 1.0;
-        gbc.anchor    = GridBagConstraints.WEST;
-        gbc.insets    = new Insets(0, 10, 0, 0);
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        gbc.weightx = 1.0;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(0, 10, 0, 0);
 
         JLabel configLabel = new JLabel("Config: " + configFilePath.toString());
         panel.add(configLabel, gbc);
