@@ -8,42 +8,34 @@ import java.util.Properties;
 
 import javax.swing.*;
 
-import com.intellij.diff.DiffManager;
-import com.intellij.diff.DiffRequestFactory;
-import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.vfs.LocalFileSystem;
-import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.fileEditor.OpenFileDescriptor;
+import org.jetbrains.annotations.NotNull;
 
 import java.net.URLEncoder;
 
-/**
- * 主面板
- *
- * @author huangxingguang
- * @date 2019-04-21 13:53
- */
-class Browser extends JPanel {
+final class Browser extends JPanel {
     private BrowserView webView;
     private JButton btnRefresh;
     private JProgressBar progressBar;
     private Path configFilePath;
     private int port = 5000; // default port value
-    private Project project;
+    private final Project project;
 
-    Browser(BrowserView webView, Project project) {
+    Browser(BrowserView webView, @NotNull Project project) {
         this.webView = webView;
         this.project = project;
-        this.initConfig();
-        this.initView();
-        this.initEvent();
-        this.loadApp();
+        initConfigPath();
+        initView();
+        initEvent();
+        loadApp();
     }
 
-    private void initConfig()
+    public void destroy() {
+        webView.onHide();
+    }
+
+    private void initConfigPath()
     {
-        // Get user home directory (works on Linux, Windows, and macOS)
         String userHomeDirectory = System.getProperty("user.home");
         configFilePath = Paths.get(userHomeDirectory, "code_agent_cnfg.env");
     }
@@ -73,6 +65,7 @@ class Browser extends JPanel {
     private void loadApp()
     {
         loadConfigFile();
+        initBrowserEvent();
         webView.load("about:blank");
 
         try {
@@ -134,8 +127,10 @@ class Browser extends JPanel {
             progressBar.setVisible(e != 1.0 && e != 0);
             progressBar.setValue((int) (e * 100));
         }));
+    }
 
-        webView.addJSHandler(this::fromPluginCallback);
+    private void initBrowserEvent() {
+        webView.addJSHandler(new JsTransport(project));
     }
 
     private static class ControlButton extends JButton {
@@ -153,80 +148,5 @@ class Browser extends JPanel {
         } else {
             SwingUtilities.invokeLater(runnable);
         }
-    }
-
-    private String fromPluginCallback(String command) {
-        // Check if command starts with file open prefix
-        if (command == null) {
-            return "error:wrong_command";
-        }
-
-        // open file in the IDE
-        String[] commandAndArgs = command.split("/\\/");
-        if (commandAndArgs.length == 0) {
-            return "error:wrong_command";
-        }
-
-        String opCode = commandAndArgs[0];
-
-        if (opCode.equals("jide_open_file") || opCode.equals("jide_open_diff_file") && commandAndArgs.length == 2) {
-            String filePath = commandAndArgs[1];
-
-            try {
-                VirtualFile vFile = getProjectFile(filePath);
-
-                ApplicationManager.getApplication().invokeLater(() -> {
-                    new OpenFileDescriptor(project, vFile).navigate(true);
-                });
-            } catch (IllegalArgumentException e) {
-                return e.getMessage();
-            }
-        } else if (opCode.equals("jide_open_diff_file")) {
-            String filePath = commandAndArgs[1];
-            String sourceFilePath = commandAndArgs[2];
-
-            try {
-                VirtualFile left = getProjectFile(sourceFilePath);
-                VirtualFile right = getProjectFile(filePath);
-
-                com.intellij.openapi.project.DumbService.getInstance(project).runWhenSmart(() ->
-                        ApplicationManager.getApplication().invokeLater(() -> {
-                            if (project.isDisposed()) return;
-                            if (left == null || right == null || !left.isValid() || !right.isValid()) return;
-
-                            var request = DiffRequestFactory.getInstance().createFromFiles(project, left, right);
-                            DiffManager.getInstance().showDiff(project, request);
-                        }, com.intellij.openapi.application.ModalityState.NON_MODAL)
-                );
-            } catch (IllegalArgumentException e) {
-                return e.getMessage();
-            }
-        }
-
-        // Default response for other commands
-        return "success";
-    }
-
-    private VirtualFile getProjectFile(String filePath)
-    {
-        if (filePath.isEmpty()) {
-            throw new IllegalArgumentException("error:empty_file_path");
-        }
-
-        // Convert to absolute path if relative
-        File file = new File(filePath);
-        if (!file.isAbsolute()) {
-            file = new File(project.getBasePath(), filePath);
-        }
-
-        if (!file.exists()) {
-            throw new IllegalArgumentException("error:file_not_found: " + file.getAbsolutePath() + "\n(" + project.getBasePath() + ")\n[" + filePath + "]");
-        }
-
-        // Open file in IntelliJ editor
-        VirtualFile vFile = LocalFileSystem.getInstance().refreshAndFindFileByPath(file.getAbsolutePath());
-        if (vFile == null) throw new IllegalArgumentException("File not found in VFS: " + file.getAbsolutePath());
-
-        return vFile;
     }
 }

@@ -24,7 +24,7 @@ public interface BrowserView {
 
     public JBCefBrowser getJBCefBrowser();
 
-    public void addJSHandler(Function<String,String> cb);
+    public void addJSHandler(JsTransport instance);
 
     /**
      * 加载新的页面
@@ -87,6 +87,7 @@ public interface BrowserView {
      */
     void executeScript(String script);
 
+    void onHide();
     /**
      * 实现类型
      * 
