@@ -47,7 +47,6 @@ public class JsTransport extends CefMessageRouterHandlerAdapter {
             throw new IllegalArgumentException("wrong_command");
         }
 
-        // open file in the IDE
         String[] commandAndArgs = command.split("/\\/");
         if (commandAndArgs.length == 0) {
             throw new IllegalArgumentException("wrong_command_arguments");

@@ -27,6 +27,10 @@ public final class BrowserToolWindowPanel extends JPanel {
         }
     }
 
+    public void init() {
+        browser.init();
+    }
+
     private boolean isSupportedJCEF() {
         try {
             Method method = ReflectionUtil.getDeclaredMethod(

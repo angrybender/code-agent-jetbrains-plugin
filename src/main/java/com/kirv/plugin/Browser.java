@@ -34,6 +34,10 @@ final class Browser extends JPanel {
         webView.onHide();
     }
 
+    public void init() {
+        initBrowserEvent();
+    }
+
     private void initConfigPath() {
         String userHomeDirectory = System.getProperty("user.home");
         configFilePath = Paths.get(userHomeDirectory, "code_agent_cnfg.env");
@@ -63,7 +67,6 @@ final class Browser extends JPanel {
 
     private void loadApp() {
         loadConfigFile();
-        initBrowserEvent();
         webView.load("about:blank");
 
         try {

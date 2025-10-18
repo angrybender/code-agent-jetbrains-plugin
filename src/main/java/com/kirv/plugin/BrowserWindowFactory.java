@@ -31,6 +31,8 @@ public class BrowserWindowFactory implements ToolWindowFactory {
                 ToolWindow tw = toolWindowManager.getToolWindow("CopilotGUI");
                 if (tw != null && !tw.isVisible()) {
                     panel.destroy();
+                } else if (tw != null && tw.isVisible()) {
+                    panel.init();
                 }
             }
         });
