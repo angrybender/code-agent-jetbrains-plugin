@@ -2,78 +2,54 @@ package com.kirv.plugin;
 
 import java.awt.*;
 import java.io.*;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Properties;
-
 import javax.swing.*;
 
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.vfs.LocalFileSystem;
+import com.intellij.openapi.vfs.VirtualFile;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.URLEncoder;
 
 final class Browser extends JPanel {
     private BrowserView webView;
+    private ConfigService configService;
+    private final Project project;
     private JButton btnRefresh;
     private JButton btnOpenConfigFile;
     private JLabel statusLabel;
     private JProgressBar progressBar;
-    private Path configFilePath;
-    private int port = 5000; // default port value
-    private final Project project;
+    private Boolean isStartEvent = false;
 
     Browser(BrowserView webView, @NotNull Project project) {
         this.webView = webView;
         this.project = project;
-        initConfigPath();
+        this.configService = new ConfigService();
         initView();
         initEvent();
         loadApp();
+        initBrowserEvent();
+        isStartEvent = true;
     }
 
     public void destroy() {
         webView.onHide();
+        isStartEvent = false;
     }
 
     public void init() {
-        initBrowserEvent();
-    }
-
-    private void initConfigPath() {
-        String userHomeDirectory = System.getProperty("user.home");
-        configFilePath = Paths.get(userHomeDirectory, "code_agent_cnfg.env");
-    }
-
-    private void loadConfigFile() {
-        Properties properties = new Properties();
-
-        try (BufferedReader reader = new BufferedReader(new FileReader(configFilePath.toFile()))) {
-            properties.load(reader);
-
-            // Read PORT parameter with default value 5000
-            String portStr = properties.getProperty("PORT", "5000");
-            try {
-                port = Integer.parseInt(portStr.trim());
-            } catch (NumberFormatException e) {
-                // If PORT value is invalid, use default 5000
-                port = 5000;
-                System.err.println("Invalid PORT value in config file, using default: 5000");
-            }
-
-        } catch (IOException e) {
-            // Config file not found or cannot be read - use default port
-            port = 5000;
+        if (!isStartEvent) {
+            initBrowserEvent();
         }
     }
 
     private void loadApp() {
-        loadConfigFile();
+        configService.loadConfigFile();
         webView.load("about:blank");
 
         try {
             String projectPath = URLEncoder.encode(project.getBasePath(), "UTF-8").replaceAll("\\+", "%20");
-            webView.load("http://localhost:" + port + "/?project=" + projectPath);
+            webView.load("http://localhost:" + configService.getPort() + "/?project=" + projectPath);
             statusLabel.setText("Connection...");
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
@@ -96,7 +72,6 @@ final class Browser extends JPanel {
         gbc.weightx = 0;                               // give this cell all extra horizontal space
         gbc.fill = GridBagConstraints.NONE;            // do not stretch the button
         gbc.anchor = GridBagConstraints.WEST;          // align to the left (west) of the cell
-
         panel.add(btnRefresh = new ControlButton("↻"), gbc);
 
         gbc = new GridBagConstraints();
@@ -105,16 +80,14 @@ final class Browser extends JPanel {
         gbc.weightx = 0;
         gbc.fill = GridBagConstraints.NONE;
         gbc.anchor = GridBagConstraints.WEST;
-        panel.add(btnOpenConfigFile = new ControlButton(".env"), gbc);
+        panel.add(btnOpenConfigFile = new ControlButton("⚙"), gbc);
 
-        // add config file path label
         gbc = new GridBagConstraints();
         gbc.gridx = 2;
         gbc.gridy = 0;
         gbc.weightx = 0;
         gbc.anchor = GridBagConstraints.WEST;
         gbc.insets = new Insets(0, 10, 0, 0);
-
         statusLabel = new JLabel("...");
         panel.add(statusLabel, gbc);
 
@@ -142,6 +115,7 @@ final class Browser extends JPanel {
 
     private void initEvent() {
         btnRefresh.addActionListener(e -> loadApp());
+        btnOpenConfigFile.addActionListener(e -> openConfigFile());
 
         webView.onProgressChange(e -> swingInvokeLater(() -> {
             progressBar.setVisible(e != 1.0 && e != 0);
@@ -151,6 +125,16 @@ final class Browser extends JPanel {
 
     private void initBrowserEvent() {
         webView.addJSHandler(new JsTransport(project, statusLabel));
+    }
+
+    private void openConfigFile() {
+        File configFile = configService.getConfigFilePath().toFile();
+        if (!configFile.exists()) {
+            configService.createConfigFromDefault();
+        }
+
+        VirtualFile vFile = LocalFileSystem.getInstance().refreshAndFindFileByPath(configFile.getAbsolutePath());
+        IdeInstanceService.getInstance(project).openFile(vFile);
     }
 
     private static class ControlButton extends JButton {
