@@ -83,7 +83,7 @@ final class Browser extends JPanel {
         gbc.weightx = 0;
         gbc.fill = GridBagConstraints.NONE;
         gbc.anchor = GridBagConstraints.WEST;
-        panel.add(btnOpenConfigFile = new ControlButton("⚙"), gbc);
+        panel.add(btnOpenConfigFile = new ControlButton("\uD83D\uDD27"), gbc);
 
         gbc = new GridBagConstraints();
         gbc.gridx = 2;
