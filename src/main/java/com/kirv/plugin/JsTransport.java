@@ -32,14 +32,11 @@ public class JsTransport extends CefMessageRouterHandlerAdapter {
                            CefQueryCallback callback) {
 
         //System.out.println("JS called with: " + request + ", for project: " + project.getBasePath());
-        String result = "";
         try {
-            result = onCallback(request);
+            callback.success(onCallback(request));
         } catch (IllegalArgumentException e) {
-            result = "error:" + e.getMessage();
+            callback.failure(1, e.getMessage());
         }
-
-        callback.success(result);
 
         return true;
     }

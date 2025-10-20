@@ -23,12 +23,12 @@ public final class BrowserToolWindowPanel extends JPanel {
 
     public void destroy() {
         if (browser != null) {
-            browser.destroy();
+            browser.onHide();
         }
     }
 
     public void init() {
-        browser.init();
+        browser.onShow();
     }
 
     private boolean isSupportedJCEF() {

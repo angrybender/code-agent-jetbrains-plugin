@@ -32,20 +32,23 @@ final class Browser extends JPanel {
         isStartEvent = true;
     }
 
-    public void destroy() {
+    public void onHide() {
         webView.onHide();
         isStartEvent = false;
     }
 
-    public void init() {
+    public void onShow() {
         if (!isStartEvent) {
             initBrowserEvent();
         }
+
+        webView.onShow();
     }
 
     private void loadApp() {
         configService.loadConfigFile();
         webView.load("about:blank");
+
 
         try {
             String projectPath = URLEncoder.encode(project.getBasePath(), "UTF-8").replaceAll("\\+", "%20");

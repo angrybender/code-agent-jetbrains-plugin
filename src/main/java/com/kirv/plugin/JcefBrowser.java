@@ -185,6 +185,13 @@ public class JcefBrowser implements BrowserView, Disposable {
             cefClient.removeMessageRouter(cefRouter);
             cefRouter.dispose();
         }
+
+        executeScript("onPluginHide();");
+    }
+
+    @Override
+    public void onShow() {
+        executeScript("onPluginShow();");
     }
 
     @Override
