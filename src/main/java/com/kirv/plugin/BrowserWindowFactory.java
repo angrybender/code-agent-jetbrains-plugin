@@ -28,7 +28,7 @@ public class BrowserWindowFactory implements ToolWindowFactory {
             @Override
             public void stateChanged(@NotNull ToolWindowManager toolWindowManager) {
                 // shown/hidden callbacks
-                ToolWindow tw = toolWindowManager.getToolWindow("CopilotGUI");
+                ToolWindow tw = toolWindowManager.getToolWindow("Agent-0.7");
                 if (tw != null && !tw.isVisible()) {
                     panel.destroy();
                 } else if (tw != null && tw.isVisible()) {

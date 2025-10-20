@@ -49,8 +49,7 @@ public final class BrowserToolWindowPanel extends JPanel {
                         .forName("com.kirv.plugin.JcefBrowser")
                         .getDeclaredConstructor()
                         .newInstance();
-                browser = new Browser(view, project); // pass this window's Project down
-                return browser;
+                return new Browser(view, project);
             }
         } catch (Exception e) {
             LOG.error(e);
