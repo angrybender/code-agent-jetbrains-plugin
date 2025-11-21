@@ -18,7 +18,7 @@ public class BrowserWindowFactory implements ToolWindowFactory {
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
         ContentFactory contentFactory = ContentFactory.getInstance();
-        BrowserToolWindowPanel panel = new BrowserToolWindowPanel(project); // per-project panel
+        BrowserToolWindowPanel panel = new BrowserToolWindowPanel(project);
         Content content = contentFactory.createContent(panel, "", false);
         toolWindow.getContentManager().addContent(content);
 
