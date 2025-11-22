@@ -1,79 +1,62 @@
 package com.kirv.plugin;
 
 import java.awt.*;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Properties;
-
+import java.io.*;
 import javax.swing.*;
 
-import org.cef.browser.CefBrowser;
-import org.cef.browser.CefFrame;
-import org.cef.browser.CefMessageRouter;
-import org.cef.callback.CefQueryCallback;
-import org.cef.handler.CefMessageRouterHandlerAdapter;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.vfs.LocalFileSystem;
+import com.intellij.openapi.vfs.VirtualFile;
+import org.jetbrains.annotations.NotNull;
 
-/**
- * 主面板
- *
- * @author huangxingguang
- * @date 2019-04-21 13:53
- */
-class Browser extends JPanel {
+import java.net.URLEncoder;
+
+final class Browser extends JPanel {
     private BrowserView webView;
+    private ConfigService configService;
+    private final Project project;
     private JButton btnRefresh;
+    private JButton btnOpenConfigFile;
+    private JLabel statusLabel;
     private JProgressBar progressBar;
-    private String userHomeDirectory;
-    private Path configFilePath;
-    private int port = 5000; // default port value
+    private Boolean isStartEvent = false;
 
-    Browser(BrowserView webView) {
+    Browser(BrowserView webView, @NotNull Project project) {
         this.webView = webView;
-        this.initConfig();
-        this.initView();
-        this.initEvent();
-        this.loadApp();
+        this.project = project;
+        this.configService = new ConfigService();
+        initView();
+        initEvent();
+        loadApp();
+        initBrowserEvent();
+        isStartEvent = true;
     }
 
-    private void initConfig()
-    {
-        // Get user home directory (works on Linux, Windows, and macOS)
-        userHomeDirectory = System.getProperty("user.home");
-        configFilePath = Paths.get(userHomeDirectory, "code_agent_cnfg.env");
+    public void onHide() {
+        webView.onHide();
+        isStartEvent = false;
     }
 
-    private void loadConfigFile() {
-        Properties properties = new Properties();
-
-        try (BufferedReader reader = new BufferedReader(new FileReader(configFilePath.toFile()))) {
-            properties.load(reader);
-
-            // Read PORT parameter with default value 5000
-            String portStr = properties.getProperty("PORT", "5000");
-            try {
-                port = Integer.parseInt(portStr.trim());
-            } catch (NumberFormatException e) {
-                // If PORT value is invalid, use default 5000
-                port = 5000;
-                System.err.println("Invalid PORT value in config file, using default: 5000");
-            }
-
-        } catch (IOException e) {
-            // Config file not found or cannot be read - use default port
-            port = 5000;
+    public void onShow() {
+        if (!isStartEvent) {
+            initBrowserEvent();
         }
+
+        webView.onShow();
     }
 
-    private void loadApp()
-    {
-        loadConfigFile();
+    private void loadApp() {
+        configService.loadConfigFile();
         webView.load("about:blank");
-        webView.load("http://localhost:" + port + "/");
+
+
+        try {
+            String projectPath = URLEncoder.encode(project.getBasePath(), "UTF-8").replaceAll("\\+", "%20");
+            webView.load("http://localhost:" + configService.getPort() + "/?project=" + projectPath);
+            statusLabel.setText("Connection...");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void initView() {
@@ -87,24 +70,37 @@ class Browser extends JPanel {
 
         // make the button hug the left side
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx     = 0;                                  // column 0
-        gbc.gridy     = 0;                                  // row    0
-        gbc.weightx   = 1.0;                                // give this cell all extra horizontal space
-        gbc.fill      = GridBagConstraints.NONE;            // do not stretch the button
-        gbc.anchor    = GridBagConstraints.WEST;            // align to the left (west) of the cell
-
+        gbc.gridx = 0;                                 // column 0
+        gbc.gridy = 0;                                 // row    0
+        gbc.weightx = 0;                               // give this cell all extra horizontal space
+        gbc.fill = GridBagConstraints.NONE;            // do not stretch the button
+        gbc.anchor = GridBagConstraints.WEST;          // align to the left (west) of the cell
         panel.add(btnRefresh = new ControlButton("↻"), gbc);
 
-        // add config file path label
         gbc = new GridBagConstraints();
-        gbc.gridx     = 1;
-        gbc.gridy     = 0;
-        gbc.weightx   = 1.0;
-        gbc.anchor    = GridBagConstraints.WEST;
-        gbc.insets    = new Insets(0, 10, 0, 0);
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        gbc.weightx = 0;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.anchor = GridBagConstraints.WEST;
+        panel.add(btnOpenConfigFile = new ControlButton("\uD83D\uDD27"), gbc);
 
-        JLabel configLabel = new JLabel("Config: " + configFilePath.toString());
-        panel.add(configLabel, gbc);
+        gbc = new GridBagConstraints();
+        gbc.gridx = 2;
+        gbc.gridy = 0;
+        gbc.weightx = 0;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(0, 10, 0, 0);
+        statusLabel = new JLabel("...");
+        panel.add(statusLabel, gbc);
+
+        // filler (push everything to the left)
+        gbc = new GridBagConstraints();
+        gbc.gridx = 3;
+        gbc.gridy = 0;
+        gbc.weightx = 1.0; // take remaining space
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        panel.add(Box.createHorizontalGlue(), gbc);
 
         return panel;
     }
@@ -122,13 +118,26 @@ class Browser extends JPanel {
 
     private void initEvent() {
         btnRefresh.addActionListener(e -> loadApp());
+        btnOpenConfigFile.addActionListener(e -> openConfigFile());
 
         webView.onProgressChange(e -> swingInvokeLater(() -> {
             progressBar.setVisible(e != 1.0 && e != 0);
             progressBar.setValue((int) (e * 100));
         }));
+    }
 
-        webView.addJSHandler(this::fromPluginCallback);
+    private void initBrowserEvent() {
+        webView.addJSHandler(new JsTransport(project, statusLabel));
+    }
+
+    private void openConfigFile() {
+        File configFile = configService.getConfigFilePath().toFile();
+        if (!configFile.exists()) {
+            configService.createConfigFromDefault();
+        }
+
+        VirtualFile vFile = LocalFileSystem.getInstance().refreshAndFindFileByPath(configFile.getAbsolutePath());
+        IdeInstanceService.getInstance(project).openFile(vFile);
     }
 
     private static class ControlButton extends JButton {
@@ -146,9 +155,5 @@ class Browser extends JPanel {
         } else {
             SwingUtilities.invokeLater(runnable);
         }
-    }
-
-    private String fromPluginCallback(String command) {
-        return "true";
     }
 }

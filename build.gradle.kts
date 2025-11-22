@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.kirv.plugin"
-version = "0.0.3"
+version = "1.0.0-rc2"
 
 val platformType = providers.gradleProperty("platformType").orElse("IC")
 val platformVersion = providers.gradleProperty("platformVersion").orElse("2025.2")

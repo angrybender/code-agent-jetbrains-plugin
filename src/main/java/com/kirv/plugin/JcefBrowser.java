@@ -2,7 +2,6 @@ package com.kirv.plugin;
 
 import java.util.Objects;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 import javax.swing.*;
 
@@ -11,7 +10,6 @@ import org.cef.CefClient;
 import org.cef.browser.CefBrowser;
 import org.cef.browser.CefFrame;
 import org.cef.browser.CefMessageRouter;
-import org.cef.callback.CefQueryCallback;
 import org.cef.handler.CefDisplayHandlerAdapter;
 import org.cef.handler.CefLifeSpanHandlerAdapter;
 import org.cef.handler.CefLoadHandlerAdapter;
@@ -20,7 +18,6 @@ import com.intellij.openapi.Disposable;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.ui.jcef.JBCefBrowser;
 import com.intellij.ui.jcef.JBCefClient;
-import org.cef.handler.CefMessageRouterHandlerAdapter;
 
 /**
  * Jcef Browser
@@ -39,7 +36,6 @@ public class JcefBrowser implements BrowserView, Disposable {
 
     JcefBrowser() {
         browser = new JBCefBrowser("about:blank");
-        cefRouter = CefMessageRouter.create();
         cefBrowser = browser.getCefBrowser();
         cefClient = browser.getJBCefClient().getCefClient();
         JBCefClient jbCefClient = browser.getJBCefClient();
@@ -86,8 +82,7 @@ public class JcefBrowser implements BrowserView, Disposable {
             public void onLoadError(CefBrowser browser, CefFrame frame, ErrorCode errorCode, String errorText, String failedUrl) {
                 if (Objects.nonNull(progressChangedConsumer)) {
                     synchronized (this) {
-
-                            progress = 0;
+                        progress = 0;
                         progressChangedConsumer.accept(progress);
                     }
                 }
@@ -97,7 +92,6 @@ public class JcefBrowser implements BrowserView, Disposable {
             public void onLoadEnd(CefBrowser browser, CefFrame frame, int httpStatusCode) {
                 if (Objects.nonNull(progressChangedConsumer)) {
                     synchronized (this) {
-
                         progress = 0;
                         progressChangedConsumer.accept(progress);
                     }
@@ -113,23 +107,15 @@ public class JcefBrowser implements BrowserView, Disposable {
     }
 
     @Override
-    public void addJSHandler(Function<String,String> cb) {
+    public void addJSHandler(JsTransport instance) {
         // Register handler for JS→Java messages
-        cefRouter.addHandler(new CefMessageRouterHandlerAdapter() {
-            @Override
-            public boolean onQuery(CefBrowser cefBrowser,
-                                   CefFrame frame,
-                                   long queryId,
-                                   String request,
-                                   boolean persistent,
-                                   CefQueryCallback callback) {
-
-                System.out.println("JS called with: " + request);
-                callback.success(cb.apply(request));
-
-                return true;
-            }
-        }, true);
+        if (cefRouter != null) {
+            cefClient.removeMessageRouter(cefRouter);
+            cefRouter.dispose();
+        }
+        cefRouter = CefMessageRouter.create();
+        cefClient.addMessageRouter(cefRouter);
+        cefRouter.addHandler(instance, true);
 
         // Attach router to browser
         browser.getJBCefClient().getCefClient().addMessageRouter(cefRouter);
@@ -194,8 +180,23 @@ public class JcefBrowser implements BrowserView, Disposable {
         return Type.JCEF;
     }
 
+    public void onHide() {
+        if (cefRouter != null) {
+            cefClient.removeMessageRouter(cefRouter);
+            cefRouter.dispose();
+        }
+
+        executeScript("onPluginHide();");
+    }
+
+    @Override
+    public void onShow() {
+        executeScript("onPluginShow();");
+    }
+
     @Override
     public void dispose() {
+        onHide();
         cefClient.removeLoadHandler();
         cefBrowser.stopLoad();
         cefBrowser.close(false);
