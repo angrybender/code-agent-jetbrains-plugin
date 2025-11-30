@@ -21,6 +21,8 @@ final class Browser extends JPanel {
     private JProgressBar progressBar;
     private Boolean isStartEvent = false;
 
+    private int versionTag = 1;
+
     Browser(BrowserView webView, @NotNull Project project) {
         this.webView = webView;
         this.project = project;
@@ -52,7 +54,7 @@ final class Browser extends JPanel {
 
         try {
             String projectPath = URLEncoder.encode(project.getBasePath(), "UTF-8").replaceAll("\\+", "%20");
-            webView.load("http://localhost:" + configService.getPort() + "/?project=" + projectPath);
+            webView.load("http://localhost:" + configService.getPort() + "/?project=" + projectPath + "&versionTag=" + versionTag);
             statusLabel.setText("Connection...");
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
