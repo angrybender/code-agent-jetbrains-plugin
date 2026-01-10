@@ -10,6 +10,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.URLEncoder;
+import java.util.ArrayList;
 
 final class Browser extends JPanel {
     private BrowserView webView;
@@ -21,7 +22,7 @@ final class Browser extends JPanel {
     private JProgressBar progressBar;
     private Boolean isStartEvent = false;
 
-    private int versionTag = 1;
+    private int versionTag = 2;
 
     Browser(BrowserView webView, @NotNull Project project) {
         this.webView = webView;
@@ -45,6 +46,10 @@ final class Browser extends JPanel {
         }
 
         webView.onShow();
+    }
+
+    public void onFilesDrag(ArrayList<File> files) {
+        webView.onFilesDrag(files, project.getBasePath());
     }
 
     private void loadApp() {
