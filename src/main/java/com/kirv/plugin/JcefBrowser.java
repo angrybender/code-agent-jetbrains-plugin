@@ -1,5 +1,9 @@
 package com.kirv.plugin;
 
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -201,5 +205,21 @@ public class JcefBrowser implements BrowserView, Disposable {
         cefBrowser.stopLoad();
         cefBrowser.close(false);
         Disposer.dispose(browser);
+    }
+
+    public void onFilesDrag(ArrayList<File> files, String basePath) {
+        StringBuilder message = new StringBuilder();
+        Path base = Paths.get(basePath).normalize();
+        for (int i = 0; i < files.size(); i++) {
+            Path p = Paths.get(files.get(i).getPath()).normalize();
+
+            if (p.startsWith(base)) {
+                message.append("@file ").append(base.relativize(p).toString().replace('\\', '/')).append(" ");
+            }
+        }
+
+        if (!message.isEmpty()) {
+            executeScript("onFilesDrag('" + message + "')");
+        }
     }
 }
