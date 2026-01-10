@@ -1,9 +1,7 @@
 package com.kirv.plugin;
 
-import com.intellij.ide.projectView.impl.AbstractProjectViewPane;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.util.ui.JBUI;
 import com.intellij.ide.dnd.DnDEvent;
 import com.intellij.ide.dnd.DnDSupport;
