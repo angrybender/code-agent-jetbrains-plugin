@@ -2,6 +2,8 @@ package com.kirv.plugin;
 
 import com.intellij.ui.jcef.JBCefBrowser;
 
+import java.io.File;
+import java.util.ArrayList;
 import java.util.function.Consumer;
 
 import javax.swing.*;
@@ -34,6 +36,8 @@ public interface BrowserView {
     void onHide();
 
     void onShow();
+
+    void onFilesDrag(ArrayList<File> files, String basePath);
 
     Type type();
 

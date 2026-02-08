@@ -3,9 +3,16 @@ package com.kirv.plugin;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.ui.JBUI;
+import com.intellij.ide.dnd.DnDEvent;
+import com.intellij.ide.dnd.DnDSupport;
 
 import javax.swing.*;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Objects;
 
 import com.intellij.util.ReflectionUtil;
@@ -19,6 +26,7 @@ public final class BrowserToolWindowPanel extends JPanel {
         this.project = project;
         setLayout(new java.awt.BorderLayout());
         add(createBrowserComponent(), java.awt.BorderLayout.CENTER);
+        panelEvents();
     }
 
     public void destroy() {
@@ -61,5 +69,29 @@ public final class BrowserToolWindowPanel extends JPanel {
         label.setVerticalAlignment(SwingConstants.TOP);
         label.setBorder(JBUI.Borders.emptyTop(10));
         return label;
+    }
+
+    private void panelEvents() {
+        DnDSupport.createBuilder(browser)
+                .setTargetChecker(event -> {
+                    // Return true when you want to accept the drag/drop at the current location.
+                    return true;
+                })
+                .setDropHandler(this::handleIdeDrop)
+                .install();
+    }
+
+    private void handleIdeDrop(DnDEvent event) {
+        if (event.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+            try {
+                ArrayList<File> files = (ArrayList<File>)event.getTransferData(DataFlavor.javaFileListFlavor);
+                browser.onFilesDrag(files);
+            }
+            catch (IOException e) {
+                throw new RuntimeException(e);
+            } catch (UnsupportedFlavorException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 }
