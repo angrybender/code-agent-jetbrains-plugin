@@ -117,7 +117,9 @@ public class JsTransport extends CefMessageRouterHandlerAdapter {
 
     private void handleChooseFile(CefBrowser cefBrowser) {
         ApplicationManager.getApplication().invokeLater(() -> {
-            FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor();
+            FileChooserDescriptor descriptor = FileChooserDescriptorFactory
+                    .createSingleFileDescriptor()
+                    .withExtensionFilter("Image files", "png", "jpg", "jpeg", "gif", "bmp", "webp", "svg", "ico");
             descriptor.setTitle("Select Image");
 
             FileChooserDialog dialog = FileChooserFactory.getInstance()
