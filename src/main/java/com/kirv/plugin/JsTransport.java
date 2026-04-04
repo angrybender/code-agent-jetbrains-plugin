@@ -1,5 +1,11 @@
 package com.kirv.plugin;
 
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ModalityState;
+import com.intellij.openapi.fileChooser.FileChooserDescriptor;
+import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
+import com.intellij.openapi.fileChooser.FileChooserDialog;
+import com.intellij.openapi.fileChooser.FileChooserFactory;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -9,7 +15,6 @@ import org.cef.browser.CefFrame;
 import org.cef.callback.CefQueryCallback;
 import org.cef.handler.CefMessageRouterHandlerAdapter;
 
-import java.awt.*;
 import java.io.*;
 
 import javax.swing.*;
@@ -33,6 +38,11 @@ public class JsTransport extends CefMessageRouterHandlerAdapter {
 
         //System.out.println("JS called with: " + request + ", for project: " + project.getBasePath());
         try {
+            if (request != null && request.startsWith("jide_choose_file")) {
+                handleChooseFile(cefBrowser);
+                callback.success("pending");
+                return true;
+            }
             callback.success(onCallback(request));
         } catch (IllegalArgumentException e) {
             callback.failure(1, e.getMessage());
@@ -103,5 +113,26 @@ public class JsTransport extends CefMessageRouterHandlerAdapter {
         if (vFile == null) throw new IllegalArgumentException("File not found in VFS: " + file.getAbsolutePath());
 
         return vFile;
+    }
+
+    private void handleChooseFile(CefBrowser cefBrowser) {
+        ApplicationManager.getApplication().invokeLater(() -> {
+            FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor();
+            descriptor.setTitle("Select Image");
+
+            FileChooserDialog dialog = FileChooserFactory.getInstance()
+                    .createFileChooser(descriptor, project, null);
+            VirtualFile[] chosen = dialog.choose(project);
+
+            if (chosen.length > 0) {
+                String path = chosen[0].getPath()
+                        .replace("\\", "\\\\")
+                        .replace("'", "\\'");
+                String js = "onFileChosen('" + path + "');";
+                cefBrowser.executeJavaScript(js, null, 0);
+            } else {
+                cefBrowser.executeJavaScript("onFileChosen(null);", null, 0);
+            }
+        }, ModalityState.defaultModalityState());
     }
 }
