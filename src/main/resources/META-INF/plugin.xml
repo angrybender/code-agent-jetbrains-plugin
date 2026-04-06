@@ -21,10 +21,16 @@
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow id="Agent-0.7" anchor="right" factoryClass="com.kirv.plugin.BrowserWindowFactory" icon="/META-INF/sidebarIcon.svg"/>/>
+        <toolWindow id="Agent-0.7" anchor="right" factoryClass="com.kirv.plugin.BrowserWindowFactory" icon="/META-INF/sidebarIcon.svg"/>
     </extensions>
 
     <actions>
-
+        <action id="com.kirv.plugin.AddToContextAction"
+                class="com.kirv.plugin.AddToContextAction"
+                text="Agent 0.7: Add to context">
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+            <add-to-group group-id="CommanderPopupMenu" anchor="last"/>
+            <add-to-group group-id="ScopeViewPopupMenu" anchor="last"/>
+        </action>
     </actions>
 </idea-plugin>

@@ -1,8 +1,11 @@
 package com.kirv.plugin;
 
 import javax.swing.*;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
@@ -14,15 +17,30 @@ import com.intellij.openapi.wm.ex.ToolWindowManagerListener;
 import com.intellij.openapi.wm.ToolWindowManager;
 
 public class BrowserWindowFactory implements ToolWindowFactory {
+    private static final Map<Project, BrowserToolWindowPanel> PANELS = new WeakHashMap<>();
+
+    public static @Nullable BrowserToolWindowPanel getPanel(@NotNull Project project) {
+        synchronized (PANELS) {
+            return PANELS.get(project);
+        }
+    }
 
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
         ContentFactory contentFactory = ContentFactory.getInstance();
         BrowserToolWindowPanel panel = new BrowserToolWindowPanel(project);
+        synchronized (PANELS) {
+            PANELS.put(project, panel);
+        }
         Content content = contentFactory.createContent(panel, "", false);
         toolWindow.getContentManager().addContent(content);
 
-        // Subscribe and tie the connection to the tool window's lifecycle
+        com.intellij.openapi.util.Disposer.register(toolWindow.getDisposable(), () -> {
+            synchronized (PANELS) {
+                PANELS.remove(project);
+            }
+        });
+
         MessageBusConnection connection = project.getMessageBus().connect(toolWindow.getDisposable());
         connection.subscribe(ToolWindowManagerListener.TOPIC, new ToolWindowManagerListener() {
             @Override

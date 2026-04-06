@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import com.intellij.util.ReflectionUtil;
@@ -36,7 +37,16 @@ public final class BrowserToolWindowPanel extends JPanel {
     }
 
     public void init() {
-        browser.onShow();
+        if (browser != null) {
+            browser.onShow();
+        }
+    }
+
+    public void addFilesToContext(ArrayList<File> files) {
+        if (browser == null || files == null || files.isEmpty()) {
+            return;
+        }
+        browser.onFilesDrag(files);
     }
 
     private boolean isSupportedJCEF() {
@@ -53,10 +63,7 @@ public final class BrowserToolWindowPanel extends JPanel {
     private JComponent createBrowserComponent() {
         try {
             if (isSupportedJCEF()) {
-                BrowserView view = (BrowserView) Class
-                        .forName("com.kirv.plugin.JcefBrowser")
-                        .getDeclaredConstructor()
-                        .newInstance();
+                BrowserView view = new JcefBrowser();
                 browser = new Browser(view, project);
                 return browser;
             }
@@ -72,6 +79,10 @@ public final class BrowserToolWindowPanel extends JPanel {
     }
 
     private void panelEvents() {
+        if (browser == null) {
+            return;
+        }
+
         DnDSupport.createBuilder(browser)
                 .setTargetChecker(event -> {
                     // Return true when you want to accept the drag/drop at the current location.
@@ -84,8 +95,8 @@ public final class BrowserToolWindowPanel extends JPanel {
     private void handleIdeDrop(DnDEvent event) {
         if (event.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
             try {
-                ArrayList<File> files = (ArrayList<File>)event.getTransferData(DataFlavor.javaFileListFlavor);
-                browser.onFilesDrag(files);
+                List<File> droppedFiles = (List<File>) event.getTransferData(DataFlavor.javaFileListFlavor);
+                addFilesToContext(new ArrayList<>(droppedFiles));
             }
             catch (IOException e) {
                 throw new RuntimeException(e);
