@@ -8,6 +8,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import org.jetbrains.annotations.NotNull;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
 
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -56,6 +57,7 @@ final class Browser extends JPanel {
         configService.loadConfigFile();
         webView.load("about:blank");
 
+        FileDocumentManager.getInstance().saveAllDocuments();
 
         try {
             String projectPath = URLEncoder.encode(project.getBasePath(), "UTF-8").replaceAll("\\+", "%20");
